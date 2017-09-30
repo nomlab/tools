@@ -39,4 +39,5 @@
 
 ** treetable
    : Usage: treetable sample-todo-list.{md|org} > sample-todo-list.tex
-   For details about input-file format, check [[file:examples/todo-list.org][examples/todo-list.org]] or [[file:examples/todo-list.md][examples/todo-list.md]]
+   For details about input-file format, check [[file:examples/treetable/todo-list.org][examples/treetable/todo-list.org]] or  [[file:examples/treetable/todo-list.md][examples/treetable/todo-list.md]].
+   See also about output example [[file:examples/treetable/todo-list.pdf][examples/treetable/todo-list.pdf]]
