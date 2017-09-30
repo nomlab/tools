@@ -1,0 +1,70 @@
+#+TITLE: My Todo List 2017
+#+AUTHOR: Yoshinari Nomura
+#+DATE: 2017-05-11
+
+# org-file must be started by #+TITLE:
+# It is used for telling org-files from markdown.
+#
+# Each text under the headline is inserted in "Description" column in table row.
+#
+# First level headline is ignored, second to fourth level headlines are
+# used for issue level "Large", "Middle", "Small"
+#
+
+* My Todo List # not apper in your table
+
+** DONE Issue 1
+   Description for Issue 1: TODO status on the headline such as TODO, DONE, SOMEDAY will goes to "St" column in the table.
+
+** Issue 2 [1/3]
+*** TODO Sub issue 2-1
+    :PROPERTIES:
+    :published: pub21
+    :END:
+
+    Description for Issue 2-1 ":pulished:" property is used for filling Publish column in the table.
+    *This second line and below will be ignored in the table.*
+    Because the short description in the table should be enough for us.
+
+*** DONE Sub issue 2-2
+    :PROPERTIES:
+    :published: pub22
+    :END:
+
+    Description for Issue 2-2
+
+*** TODO Sub issue 2-3
+    :PROPERTIES:
+    :published: pub23
+    :END:
+
+    Description for Issue 2-3
+
+** Issue 3
+
+   *This description is ignored*
+   because this description column in table
+   will be overrided by descendent tree items.
+
+*** Sub issue 3-1
+    *This description is ignored*
+    because this description column in table
+    will be overrided by descendent tree items.
+
+**** DONE Sub issue 3-1-1
+     :PROPERTIES:
+     :published: pub311
+     :END:
+
+     Description for 3-1-1
+
+**** SOMEDAY Sub issue 3-1-2
+     :PROPERTIES:
+     :published: pub312
+     :END:
+
+     Description for 3-1-2
+
+** COMMENT MEMO
+   # COMMENT headline and descendents are ignored.
+   blah...

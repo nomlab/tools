@@ -1,0 +1,42 @@
+#+TITLE: Tools
+#+AUTHOR: Nomura Laboratory
+#+EMAIL:
+#+DATE:
+#+OPTIONS: H:3 num:2 toc:nil
+#+OPTIONS: ^:nil @:t \n:nil ::t |:t f:t TeX:t
+#+OPTIONS: skip:nil
+#+OPTIONS: author:t
+#+OPTIONS: email:nil
+#+OPTIONS: creator:nil
+#+OPTIONS: timestamp:nil
+#+OPTIONS: timestamps:nil
+#+OPTIONS: d:nil
+#+OPTIONS: tags:t
+#+TEXT:
+#+DESCRIPTION:
+#+KEYWORDS:
+#+LANGUAGE: ja
+#+STARTUP: odd
+#+LATEX_CLASS: jsarticle
+#+LATEX_CLASS_OPTIONS: [a4j,dvipdfmx]
+# #+LATEX_HEADER: \usepackage{plain-article}
+# #+LATEX_HEADER: \renewcommand\maketitle{}
+# #+LATEX_HEADER: \pagestyle{empty}
+# #+LaTeX: \thispagestyle{empty}
+
+* What is it?
+  Must-have tools for nomlab members; mainly small CLI scripts.
+  It includes very site-specific scripts, but some script might be
+  useful for other audiences.
+
+* Command list
+  # Update it in alphabetical-order, case-independent.
+
+  + treetable :: Convert markdown or org-mode style section tree into table.
+                 It is supposed to be used for conversion of issue list into table.
+
+* Descriptions
+
+** treetable
+   : Usage: treetable sample-todo-list.{md|org} > sample-todo-list.tex
+   For details about input-file format, check [[file:examples/todo-list.org][examples/todo-list.org]] or [[file:examples/todo-list.md][examples/todo-list.md]]

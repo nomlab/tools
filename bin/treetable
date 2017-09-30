@@ -1,0 +1,483 @@
+#!/usr/bin/env ruby
+
+$DEBUG = false
+
+module OrgTodo
+  # * Document
+  #   Document consists of a PREAMBLE part and SECTIONS.
+  #   + PREAMBLE is the first part of Org document such as:
+  #     : #+TITLE: Blah
+  #     : #+AUTHOR: Yoshinari Nomura
+  #     : #+DATE: 2017-05-11
+  #
+  #   + Each SECTION is a text block started with heading (* TODO ...)
+  #     See Section class for details
+  class Document
+    attr_accessor :creator, :language
+    attr_reader :sections
+
+    def initialize(string)
+      @sections = Section.new # empty level-zero section
+
+      string.gsub!(/^\s*#\s.*$/, "") # remove comment lines
+
+      string.split(/(?=\n\*+\s+)/m).each do |part|
+        part.strip!
+
+        if part =~ /^\*+\s/
+          @sections << Section.new(part.strip)
+        else
+          # First part of document such as #+DATE: ...
+          @preamble = parse_preamble(string)
+        end
+      end
+    end
+
+    [:author, :date, :title].each do |name|
+      self.class_eval("def #{name}; @preamble['#{name.to_s}']; end")
+    end
+
+    private
+
+    def parse_preamble(string)
+      preamble = {}
+
+      string.scan(/#\+([^:]+):[\t ]*([^\n]*)\s*$/) do |k, v|
+        preamble[k.downcase] = v
+        # STDERR.puts "#{k}, #{v}"
+      end
+      return preamble
+    end
+  end # class Document
+
+  # * Section
+  #   Section consists of HEADING, PROPERTIES, and DESCRIPTION.
+  #   + HEADING is the first line started with "*".
+  #   + PROPERTIES is an org-mode syle property list.
+  #     see ``7.1 Property syntax'' http://orgmode.org/manual/Property-syntax.html#Property-syntax
+  #   + DESCRIPTION is a series of lines after PROPERTIES until the next section HEADING.
+  #   Example:
+  #    : * TODO Do all works [1/3]
+  #    :   :PROPERTIES:
+  #    :   :published: DPS167
+  #    :   :END:
+  #    :   DESCRIPTION...
+  #    :   ..........
+  #    :   ..........
+  #    : * NEXT SECTION HEADING
+  #
+  class Section
+    require "forwardable"
+    extend Forwardable
+    def_delegators :@heading, :state, :title, :level, :state_string
+
+    attr_reader :description, :properties
+    attr_accessor :parent
+    protected :parent, :parent=
+
+    def initialize(string = nil)
+      @children   = []
+      @parent = nil
+
+      match = /^([*]+\s+[^\n]*)?(?:\n\s*:PROPERTIES:\s*\n(.*)\n\s*:END:\s*\n?)?(.*)?/m.match(string).to_a
+
+      @heading     = Heading.new(match[1])
+      @properties  = PropertyList.new(match[2])
+      @description = match[3].to_s.strip.split("\n").first
+    end
+
+    # Append section as a descendant.
+    # @param section [Section]
+    # @return [Section] self
+    # @note section's level should be lower than that of the receiver.
+    def <<(section)
+      if section.level <= self.level
+        raise ArgumentError,
+              "Section level mismatch (#{section.level} <= #{self.level})"
+      end
+
+      if (tail = @children.last) && tail.level < section.level
+        tail << section
+      else
+        @children << section
+        section.parent = self
+      end
+
+      return self
+    end
+
+    # Traverse section tree by depth-first and pre-order
+    def each(&block)
+      yield self
+
+      unless self.leaf?
+        @children.each do |child|
+          child.each(&block)
+        end
+      end
+    end
+
+    # @return [Number] Number of descendent leaf-nodes
+    def height
+      return 1 if leaf?
+      @children.map(&:height).inject(:+)
+    end
+
+    # @return [Boolean] true if no descendants.
+    def leaf?
+      return true if @children.empty?
+      return true if @children.all? {|c| c.commented?}
+      return false
+    end
+
+    # @return [Boolean] true if self or ansestor is commented out by COMMENT heading.
+    def commented?
+      return true if self.state == "COMMENT"
+      return @parent.commented? if @parent
+      return false
+    end
+
+    def to_table
+      table = TodoTable.new
+      row = TodoTable::Row.new
+
+      self.each do |section|
+        next if section.level < 2
+        next if section.commented?
+        row.height[section.level - 1] = section.height
+        row.levels[section.level - 1] = section.title unless section.title.to_s.empty?
+        row.state = section.state_string unless section.state.to_s.empty?
+        row.published = section.properties[:published] unless section.properties[:published].to_s.empty?
+        row.description = section.description unless section.description.to_s.empty?
+
+        if section.leaf?
+          table << row
+          row = TodoTable::Row.new
+        end
+      end
+      return table
+    end
+  end # class Section
+
+  # * Property List
+  #   Property list is a in the form of:
+  #   : :KEY1: VALUE1
+  #   : :KEY2: VALUE2
+  #   : ...
+  #   Supporsed to be an attribute list of SECTION
+  class PropertyList
+    def initialize(string = nil)
+      @properties = {}
+
+      return unless string
+
+      string.split(/\n\s*/).each do |kv|
+        key, val = kv.strip.split(" ", 2)
+        key = key.sub(/^:/, "").sub(/:$/, "").downcase.to_sym
+        @properties[key] = val
+      end
+    end
+
+    def [](key)
+      @properties[key.to_s.downcase.to_sym]
+    end
+  end # class PropertyList
+
+  # * Headline
+  #   Headline is in the form of:
+  #   : BULLET [STATE] TITLE [PROGRESS]
+  #
+  #   For example:
+  #   : ** TODO Get things done [1/3]
+  #
+  #   + BULLET is a series of asterisks or hashes.
+  #   + STATE is on of:
+  #     + TODO
+  #     + DONE
+  #     + SOMEDAY
+  #     + COMMENT
+  #   + PROGRESS is org-mode style progress indicator
+  #     See: 5.5 Breaking down tasks
+  #     http://orgmode.org/manual/Breaking-down-tasks.html#Breaking-down-tasks
+  #
+  class Heading
+    STATE_DIC = {
+      'TODO'    => "×",
+      'DONE'    => "○",
+      'SOMEDAY' => "△",
+      'COMMENT' => "CC"
+    }
+
+    STATE    = "(?:#{STATE_DIC.keys.join('|')})"
+    PROGRESS = '\[(?:\d*%|\d*\/\d*)\]'
+
+    attr_reader :title, :state
+
+    def initialize(string = nil)
+      return unless string
+
+      raise ArgumentError unless string =~ /^([*#]+)(?:\s+(#{STATE}))?\s+(.+)/
+      @bullet, @state, @title = $1, $2, $3
+
+      if @title =~ /(#{PROGRESS})/
+        @title, @progress = ($` + $').strip, $1
+      end
+    end
+
+    def progress
+      @progress && @progress.gsub(/[\[\]]/, '')
+    end
+
+    def level
+      @bullet.to_s.length
+    end
+
+    def state_string
+      STATE_DIC[@state]
+    end
+  end # class Heading
+
+  # * TodoTable
+  #   | Num | Large  | Middle | Small  | St    | Publish                | Description |
+  #   |-----+--------+--------+--------+-------+------------------------+-------------|
+  #   |   1 | level1 | level2 | level3 | state | properties[:published] | description |
+  class TodoTable
+    class Row
+      attr_reader :levels, :height
+      attr_accessor :state, :published, :description
+
+      def initialize
+        @height, @levels, @state, @published, @description = [], [], nil, nil, nil
+      end
+
+      def first_non_empty_level
+        (1..3).each do |n|
+          return n unless @levels[n].nil?
+        end
+        return 3
+      end
+    end # class Row
+
+    def initialize
+      @rows = []
+    end
+
+    def <<(o)
+      @rows << o
+    end
+
+    def each_row(&block)
+      @rows.each do |row|
+        yield row
+      end
+    end
+
+    def to_tex
+      index, tex_table = 1, ""
+
+      each_row do |row|
+        if (c = row.first_non_empty_level) == 1
+          tex_table += "\\hline\n"
+        else
+          tex_table += "\\cline{#{c + 1}-7}\n"
+        end
+
+        tex_table += "#{index} & "
+        tex_table += "#{multirow(row.height[1], row.levels[1])} & "
+        tex_table += "#{multirow(row.height[2], row.levels[2])} & "
+        tex_table += "#{multirow(row.height[3], row.levels[3])} & "
+        tex_table += "#{escape_tex(row.state)} & "
+        tex_table += "#{escape_tex(row.published)} & "
+        tex_table += "#{escape_tex(row.description)} \\\\\n"
+        index += 1
+      end
+
+      tex_table += "\\hline\n"
+      return tex_table
+    end
+
+    private
+
+    def multirow(height, str, width = "3cm")
+      return escape_tex(str) if height.nil? || height == 1
+      return  "\\multirow{#{height}}{#{width}}{#{escape_tex(str)}}"
+    end
+
+    def escape_tex(string)
+      conv = {
+        '&'  => '\&',
+        '%'  => '\%',
+        '$'  => '\$',
+        '#'  => '\#',
+        '_'  => '\_',
+        '{'  => '\{',
+        '}'  => '\}',
+        '~'  => '\textasciitilde{}',
+        '^'  => '\^{}',
+        '\\' => '\textbackslash{}',
+        '<'  =>  '\textless{}',
+        '>'  =>  '\textgreater{}',
+      }
+
+      regexp = Regexp.union(conv.keys)
+
+      return string.to_s.gsub(regexp) do |match|
+        conv[match]
+      end
+    end
+
+  end # class TodoTable
+
+  class MarkdownPreProcessor
+    def self.convert(string)
+      out = ""
+      preamble = {}
+
+      string.split("\n").each do |line|
+        case line
+
+        when /^# (.*)/
+          preamble[:title] = $1
+
+        when /^(##+)\s+(.*?)(?:\s*\[(.*)\])?$/
+          # ## 何々の検討をする [TODO]
+          # => ** TODO 何々の検討をする
+          bullet, title, state = $1, $2, $3
+          out += [bullet.gsub("#", "*"), state, title].compact.map {|s| s.strip}.join(" ") + "\n"
+
+        when /^[+] (名前|author):\s*(.*)/i
+          preamble[:author] = $1
+
+        when /^[+] (所属|organization):\s*(.*)/i
+          preamble[:author] = preamble[:author].to_s + " (#{$1})"
+
+        when /^[+] (日付|date):\s*(.*)/i
+          preamble[:date] = $1
+
+        when /^[+] (資料等|published):\s*(.*)/i
+          out += ":PROPERTIES:\n:published: #{$1}\n:END:\n"
+
+        else
+          out += line + "\n"
+        end
+      end
+
+      return "#+TITLE: #{preamble[:title]}\n" +
+             "#+AUTHOR: #{preamble[:author]}\n" +
+             "#+DATE: #{preamble[:date]}\n" + out
+    end
+  end # class MarkdownPreProcessor
+end # module OrgTodo
+
+################################################################
+### main
+
+require "erb"
+
+content = gets(nil)
+
+unless content =~ /^#\+/
+  content = OrgTodo::MarkdownPreProcessor.convert(content)
+end
+
+doc = OrgTodo::Document.new(content)
+puts ERB.new(DATA.read, nil, "-").result(binding)
+
+__END__
+\documentclass[a4j,dvipdfmx,landscape]{jsarticle}
+\usepackage{longtable}
+\usepackage{hyperref}
+\usepackage{multirow}
+
+\tolerance=1000
+
+\author{<%= doc.author %>}
+\date{<%= doc.date %>}
+\title{<%= doc.title %>}
+
+\hypersetup{
+ pdfauthor={<%= doc.author %>},
+ pdftitle={<%= doc.title %>},
+ pdfkeywords={},
+ pdfsubject={},
+ pdfcreator={<%= doc.creator %>},
+ pdflang={<%= doc.language %>}
+}
+
+%%
+%% Thin maketitle
+%%
+\makeatletter
+\renewcommand\maketitle{
+  \let\footnotesize\small \let\footnoterule\relax
+  \null %% Empty line
+  \begin{center}
+    {\Large \bf \@title \par}
+  \end{center}
+  \begin{flushright}
+    {\normalsize \@date \par \@author \par}
+  \end{flushright}
+  \vskip 1em
+  \setcounter{footnote}{0} \let\thanks\relax
+  \gdef\@thanks{}\gdef\@author{}\gdef\@title{}\let\maketitle\relax}
+\makeatother
+
+%%
+%% Set four margins: top, bottom, left, and right.
+%%
+%% 1in = 72.27pt = 2.54cm
+%%
+%% cf. http://www.nsknet.or.jp/~tony/TeX/faq/layout.htm
+%%
+\def\setTBLRmargin#1#2#3#4{
+  % Zero-reset
+  \topmargin=-1in \headheight=0pt \headsep=0pt
+  \oddsidemargin=-1in \evensidemargin=-1in
+
+  % set top and left margins
+  % evensidemargin is not significant unless the page design is twoside.
+  \advance\topmargin#1
+  \advance\oddsidemargin#3
+  \advance\evensidemargin#4
+
+  % textwidth = paperwidth - left_margin - right_margin
+  \textwidth=\paperwidth
+  \advance\textwidth-#3
+  \advance\textwidth-#4
+
+  % textheight = pageheight - top_margin - bottom_margin
+  \textheight=\paperheight
+  \advance\textheight-#1
+  \advance\textheight-#2
+
+  % foot skip is harf-size of bottom_margin
+  \footskip=#2
+  \divide\footskip by 2
+}
+
+\setTBLRmargin{20mm}{30mm}{25mm}{25mm}
+%\AtBeginDvi{\special{landscape}}
+
+\begin{document}
+\maketitle
+
+\section*{}
+
+{\small
+\begin{longtable}{|r|p{3cm}|p{3cm}|p{3cm}|p{0.6cm}|p{1.2cm}|p{12cm}|}
+  \hline
+  No & Large & Middle & Small & St & Publish & Description \\
+  \hline
+  \endfirsthead
+  \multicolumn{7}{l}{Continued from previous page} \\
+  \hline
+  No & Large & Middle & Small & St & Publish & Description \\
+  \hline
+  \endhead
+  \hline\multicolumn{7}{r}{Continued on next page} \\
+  \endfoot
+  \endlastfoot
+  <%= doc.sections.to_table.to_tex %>
+\end{longtable}
+}
+\end{document}
