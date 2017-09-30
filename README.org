@@ -32,9 +32,8 @@
 * Command list
   # Update it in alphabetical-order, case-independent.
 
-  + treetable :: Convert markdown or org-mode style section tree into table.
+  + [[#treetable][treetable]] :: Convert markdown or org-mode style section tree into table.
                  It is supposed to be used for conversion of issue list into table.
-
 * Descriptions
 
 ** treetable

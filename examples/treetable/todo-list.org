@@ -4,12 +4,9 @@
 
 # org-file must be started by #+TITLE:
 # It is used for telling org-files from markdown.
-#
 # Each text under the headline is inserted in "Description" column in table row.
-#
 # First level headline is ignored, second to fourth level headlines are
 # used for issue level "Large", "Middle", "Small"
-#
 
 * My Todo List # not apper in your table
 
