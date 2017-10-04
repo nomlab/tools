@@ -279,6 +279,7 @@ module OrgTodo
         if (c = row.first_non_empty_level) == 1
           tex_table += "\\hline\n"
         else
+          tex_table += "\\cline{1-1}\n"
           tex_table += "\\cline{#{c + 1}-7}\n"
         end
 
