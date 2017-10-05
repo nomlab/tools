@@ -299,9 +299,10 @@ module OrgTodo
 
     private
 
-    def multirow(height, str, width = "3cm")
+    def multirow(height, str, options = {})
+      options = {width: "3cm", vpos: "t"}.merge(options)
       return escape_tex(str) if height.nil? || height == 1
-      return  "\\multirow{#{height}}{#{width}}{#{escape_tex(str)}}"
+      return  "\\multirow[#{options[:vpos]}]{#{height}}{#{options[:width]}}{#{escape_tex(str)}}"
     end
 
     def escape_tex(string)
