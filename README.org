@@ -32,9 +32,17 @@
 * Command list
   # Update it in alphabetical-order, case-independent.
 
+  + [[#slack-sweeper][slack-sweeper]] :: Bulk remove all Slack files older than N days.
+
   + [[#treetable][treetable]] :: Convert markdown or org-mode style section tree into table.
                  It is supposed to be used for conversion of issue list into table.
 * Descriptions
+
+** slack-sweeper
+   Bulk remove all Slack files older than N(>30) days.
+   : Usage: slack-seeper [-n] SLACK_API_TOKEN DAYS
+   :  -n: dry run.
+   For safety, this script does not remove more than 300 files.
 
 ** treetable
    : Usage: treetable sample-todo-list.{md|org} > sample-todo-list.tex

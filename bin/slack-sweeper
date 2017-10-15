@@ -1,0 +1,170 @@
+#!/usr/bin/env ruby
+
+# slack-seeper: Bulk remove all Slack files older than N days.
+# Yoshinari Nomura / Nomura Laboratory
+#
+# This is a part of https://github.com/nomlab/tools
+# MIT License, see LICENSE file in the repository about details.
+#
+# Thanks to:
+#   https://gist.github.com/jamescmartinez/909401b19c0f779fc9c1
+#
+# TODO: Remove only large files using size property.
+
+require 'net/http'
+require 'json'
+require 'uri'
+
+# File json object is in the form of:
+# {
+#   "id"                  => "F65VAJX0X",
+#   "created"             => 1499390541,
+#   "timestamp"           => 1499390541,
+#   "name"                => "myfile.pdf",
+#   "title"               => "myfile.pdf",
+#   "mimetype"            => "application/pdf",
+#   "filetype"            => "pdf",
+#   "pretty_type"         => "PDF",
+#   "user"                => "U02HQPMMX",
+#   "editable"            => false,
+#   "size"                => 621915,
+#   "mode"                => "hosted",
+#   "is_external"         => false,
+#   "external_type"       => "",
+#   "is_public"           => true,
+#   "public_url_shared"   => false,
+#   "display_as_bot"      => false,
+#   "username"            => "",
+#   "url_private"         => "https://files.slack.com/files-pri/.../myfile.pdf",
+#   "url_private_download"=> "https://files.slack.com/files-pri/.../myfile.pdf",
+#   "permalink"           => "https://nomlab.slack.com/files/.../myfile.pdf",
+#   "permalink_public"    => "https://slack-files.com/...",
+#   "channels"            => ["C02HQPMN5"],
+#   "groups"              => [],
+#   "ims"                 => [],
+#   "comments_count"      => 0
+# }
+class SlackFile
+  def initialize(json, service)
+    @json, @service = json, service
+  end
+
+  def id
+    @json["id"]
+  end
+
+  def name
+    @json["name"]
+  end
+
+  def size
+    @json["size"]
+  end
+
+  def created
+    Time.at(@json["created"])
+  end
+
+  def delete!
+    @service.delete_file(self)
+  end
+end
+
+class SlackService
+  def initialize(token)
+    @token = token
+  end
+
+  def files_before(days_ago)
+    ts_to = (Time.now - days_ago * 24*60*60).to_i # N days ago
+    params = {
+      token: @token,
+      ts_to: ts_to,
+      count: 1000
+    }
+    uri = URI.parse('https://slack.com/api/files.list')
+    uri.query = URI.encode_www_form(params)
+    response = Net::HTTP.get_response(uri)
+
+    files = JSON.parse(response.body)['files'].map do |file|
+      SlackFile.new(file, self)
+    end
+
+    return files.sort{|a,b| a.created <=> b.created}
+  end
+
+  def delete_file(file)
+    params = {
+      token: @token,
+      file: file.id
+    }
+    uri = URI.parse('https://slack.com/api/files.delete')
+    uri.query = URI.encode_www_form(params)
+    response = Net::HTTP.get_response(uri)
+    return JSON.parse(response.body)
+  end
+end
+
+################################################################
+### main
+
+################
+# Parse option
+
+opt_dry_run = false
+
+if ARGV[0] =~ /^-n$/
+  opt_dry_run = true
+  ARGV.shift
+end
+
+token = ARGV.shift
+days  = ARGV.shift.to_i
+
+if days <= 30 || token.length < 32
+  STDERR.puts "Usage: slack-seeper [-n] TOKEN DAYS"
+  STDERR.puts "  Remove uploaded files DAYS(>30) old and before."
+  STDERR.puts "  -n: Dry run."
+  exit 1
+end
+
+################
+# Check to prevent bulk (>300) remove.
+
+files = SlackService.new(token).files_before(days)
+nfiles = files.length
+
+if nfiles > 300
+  STDERR.puts "Aborting, too many files (>300) to delete (#{nfiles})."
+  exit 1
+end
+
+################
+# All set, do it
+
+dry = opt_dry_run ? " (DRY RUN)" : ""
+puts "* Deleting #{nfiles} files#{dry}..."
+
+count = 0
+
+files.each_with_index do |file, i|
+  time = Time.at(file.created).strftime('%Y-%m-%d')
+  print "+ Deleting (#{i}/#{nfiles}) #{file.id} #{time} #{file.name}"
+
+  if opt_dry_run
+    print "\n"
+    next
+  end
+
+  status = file.delete!
+
+  if status["ok"] == true
+    puts "...OK."
+    count += 1
+  else
+    puts "...Error (#{status["error"]})."
+  end
+end
+
+puts "Done. #{count}/#{nfiles} deleted#{dry}."
+exit 0
