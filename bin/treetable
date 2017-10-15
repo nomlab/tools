@@ -1,5 +1,12 @@
 #!/usr/bin/env ruby
 
+# treetable: Convert markdown or org-mode style section tree into table.
+# Yoshinari Nomura / Nomura Laboratory
+#
+# This is a part of https://github.com/nomlab/tools
+# MIT License, see LICENSE file in the repository about details.
+#
+
 $DEBUG = false
 
 module OrgTodo
