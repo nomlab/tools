@@ -32,11 +32,25 @@
 * Command list
   # Update it in alphabetical-order, case-independent.
 
+  + [[#ame][ame]] :: Set Slack status or send message with CLI
+
   + [[#slack-sweeper][slack-sweeper]] :: Bulk remove all Slack files older than N days.
 
   + [[#treetable][treetable]] :: Convert markdown or org-mode style section tree into table.
                  It is supposed to be used for conversion of issue list into table.
 * Descriptions
+
+** ame
+   Set Slack status or send message with CLI.
+   : ame [-c CONFIG_FILE] [-t TOKEN_NAME] -m message CHANNEL TEXT
+   : ame [-c CONFIG_FILE] [-t TOKEN_NAME] -m status ICON TEXT
+   :   -c Set config file (default: ~/.config/ame/config.sh).
+   :   -t Select token name found in config.sh.
+   :   -m Select method (message or status).
+   : examples:
+   :   ame -m message general "Hi, there."
+   :   ame -m status :office: "I am at office"
+   See also about config example [[file:examples/ame/config.sh][examples/ame/config.sh]]
 
 ** slack-sweeper
    Bulk remove all Slack files older than N(>30) days.
