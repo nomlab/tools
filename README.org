@@ -34,6 +34,8 @@
 
   + [[#ame][ame]] :: Set Slack status or send message with CLI
 
+  + [[#favico][favico]] :: Create simple one-letter icon for placeholder.
+
   + [[#slack-sweeper][slack-sweeper]] :: Bulk remove all Slack files older than N days.
 
   + [[#treetable][treetable]] :: Convert markdown or org-mode style section tree into table.
@@ -51,6 +53,16 @@
    :   ame -m message general "Hi, there."
    :   ame -m status :office: "I am at office"
    See also about config example [[file:examples/ame/config.sh][examples/ame/config.sh]]
+
+** favico
+   Create simple one-letter icon for placeholder.
+   : favico [-s size] [-c color] [-b bgcolor] [-f font] -o FILENAME STRING
+
+   : examples:
+   :   favico -s 64 -c white -b blue -o N.png 'N'
+   :   favico -s 64 -f '/Library/Fonts/ヒラギノ丸ゴ ProN W4.ttc' -o nom.png '乃'
+
+   creates: [[file:examples/favico/N.png]] [[file:examples/favico/nom.png]]
 
 ** slack-sweeper
    Bulk remove all Slack files older than N(>30) days.

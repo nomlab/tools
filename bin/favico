@@ -1,0 +1,109 @@
+#!/bin/sh
+
+## print message
+
+print_error () {
+    printf "$@"
+} >&2
+
+usage() {
+  printf "Usage: $(basename $0) [-s size] [-c color] [-b bgcolor] [-f font] -o FILENAME STRING\n"
+  printf "Example: favico -s 64 -c white -b blue -o N.png 'N'\n"
+  printf "         favico -s 64 -f '/Library/Fonts/ヒラギノ丸ゴ ProN W4.ttc' -o nom.png '乃'\n"
+} >&2
+
+## parse option
+
+OPT_COLOR=black
+OPT_BGCOLOR=orange
+OPT_SIZE=32
+OPT_FONT="Arial"
+
+# first colon suppresses bash's original error handling
+while getopts ":f:c:b:s:o:" flag
+do
+  case $flag in
+    # getopts sets '?' to flag on error.
+    \?|h) OPT_ERROR=1           ;;
+    f)    OPT_FONT="$OPTARG"    ;;
+    c)    OPT_COLOR="$OPTARG"   ;;
+    b)    OPT_BGCOLOR="$OPTARG" ;;
+    s)    OPT_SIZE="$OPTARG"    ;;
+    o)    OPT_FILE="$OPTARG"    ;;
+  esac
+done
+shift $(( $OPTIND - 1 ))
+
+OPT_STRING="$1"
+
+if [ $# -lt 1  -o "$OPT_ERROR" = 1 -o -z "$OPT_FILE" -o -z "$OPT_STRING" ]; then
+  usage
+  exit 1
+fi
+
+## Calculate bounding box
+
+# Find Bounding Box For B/W Image
+# http://www.imagemagick.org/discourse-server/viewtopic.php?t=16085
+#
+# type is one of:
+#   w ... width of bounding box
+#   h ... height of bounding box
+#   X ... offset of left-most pixel
+#   Y ... offset of upper-most pixel
+image_info () {
+  local string="$1"
+  local type="$2"
+  local font="$3"
+  cat <<EOF |convert -font "$font" -trim svg:- -format "%$type" info:- | sed 's/[+-]//'
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000">
+      <g font-family="$font"
+         font-size="300" font-weight="bold">
+        <text dominant-baseline="middle" text-anchor="middle"
+              fill="#000" x="500" y="500">$string</text>
+      </g>
+    </svg>
+EOF
+}
+
+w=$(image_info "$OPT_STRING" "w" "$OPT_FONT")
+h=$(image_info "$OPT_STRING" "h" "$OPT_FONT")
+X=$(image_info "$OPT_STRING" "X" "$OPT_FONT")
+Y=$(image_info "$OPT_STRING" "Y" "$OPT_FONT")
+
+# echo "w=$w, h=$h, X=$X, Y=$Y"
+
+#
+# calculate frame size
+#
+if [ $w -gt $h ]; then
+  max_size=$w
+else
+  max_size=$h
+fi
+
+frame_size=$(expr $max_size \* 12 / 10) # add 20% pixels margin
+
+
+#
+# calculate new placement
+#
+xoff=$(expr $frame_size - $w)
+yoff=$(expr $frame_size - $h)
+NewX=$(expr 500 - $X + $xoff / 2)
+NewY=$(expr 500 - $Y + $yoff / 2)
+
+# x-axis radius of the ellipse used to round off the corners of the rectangle.
+#   https://www.w3.org/TR/SVG/shapes.html#RectElementRXAttribute
+rx=$(expr $frame_size / 10)
+
+cat <<EOF |convert -font "$OPT_FONT" -size "${OPT_SIZE}x${OPT_SIZE}" -background transparent svg:- "$OPT_FILE"
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 $frame_size $frame_size">
+  <rect rx="$rx" width="$frame_size" height="$frame_size" fill="$OPT_BGCOLOR"/>
+  <text dominant-baseline="middle" text-anchor="middle"
+        font-family="$OPT_FONT"
+        font-size="300" font-weight="bold"
+        fill="$OPT_COLOR"
+        x="$NewX" y="$NewY">$OPT_STRING</text>
+</svg>
+EOF
