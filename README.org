@@ -68,7 +68,7 @@
 
 ** rails-new
    Create a new Rails project in sandbox using bundler.
-   : rails-new [project-name]
+   : rails-new project-name
 
    It does:
    1) Create =./project-name= directory
