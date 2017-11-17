@@ -1,0 +1,22 @@
+#!/bin/sh
+
+APP_NAME="$1"
+IGN_MORE="https://raw.github.com/github/gitignore/master/Rails.gitignore"
+
+mkdir "$APP_NAME" && cd "$APP_NAME" || exit 1
+
+bundle init || exit 1
+echo 'gem "rails"' >> Gemfile
+
+bundle install --path vendor/bundle && \
+  bundle exec rails new . -f --skip-bundle # --skip-test-unit
+
+echo "#"                      >> .gitignore
+echo "# Added from $IGN_MORE" >> .gitignore
+echo "#"                      >> .gitignore
+curl -L "$IGN_MORE"           >> .gitignore
+
+#echo "# RSpec"                                         >> Gemfile
+#echo "gem 'rspec-rails', group: [:development, :test]" >> Gemfile
+
+bundle install --path vendor/bundle

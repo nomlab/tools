@@ -36,6 +36,8 @@
 
   + [[#favico][favico]] :: Create simple one-letter icon for placeholder.
 
+  + [[#rails-new][rails-new]] :: Create a new Rails project in sandbox using bundler.
+
   + [[#slack-sweeper][slack-sweeper]] :: Bulk remove all Slack files older than N days.
 
   + [[#treetable][treetable]] :: Convert markdown or org-mode style section tree into table.
@@ -63,6 +65,17 @@
    :   favico -s 64 -f '/Library/Fonts/ヒラギノ丸ゴ ProN W4.ttc' -o nom.png '乃'
 
    creates: [[file:examples/favico/N.png]] [[file:examples/favico/nom.png]]
+
+** rails-new
+   Create a new Rails project in sandbox using bundler.
+   : rails-new [project-name]
+
+   It does:
+   1) Create =./project-name= directory
+   2) Create temporal Gemfile for bootstrap
+   3) Install Rails with bundler
+   4) Invoke =bundle exec rails new= overriding initial Gemfile.
+   5) Add .gitignore from =github/gitignore=
 
 ** slack-sweeper
    Bulk remove all Slack files older than N(>30) days.
