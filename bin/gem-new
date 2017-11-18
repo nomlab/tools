@@ -1,0 +1,19 @@
+#!/bin/sh
+
+PRJ_NAME="$1"
+IGN_MORE="https://raw.github.com/github/gitignore/master/Ruby.gitignore"
+
+bundle gem "$PRJ_NAME" --no-coc -t && cd "$PRJ_NAME" || exit 1
+bundle install --path vendor/bundle
+
+echo "#"                      >> .gitignore
+echo "# Added from $IGN_MORE" >> .gitignore
+echo "#"                      >> .gitignore
+curl -L "$IGN_MORE"           >> .gitignore
+
+echo "#"                      >> .gitignore
+echo "# Added from $0"        >> .gitignore
+echo "#"                      >> .gitignore
+echo "/vendor"                >> .gitignore
+
+git add .gitignore

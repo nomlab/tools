@@ -36,6 +36,8 @@
 
   + [[#favico][favico]] :: Create simple one-letter icon for placeholder.
 
+  + [[#gem-new][gem-new]] :: Create a new Gem project in sandbox using bundler.
+
   + [[#rails-new][rails-new]] :: Create a new Rails project in sandbox using bundler.
 
   + [[#slack-sweeper][slack-sweeper]] :: Bulk remove all Slack files older than N days.
@@ -65,6 +67,16 @@
    :   favico -s 64 -f '/Library/Fonts/ヒラギノ丸ゴ ProN W4.ttc' -o nom.png '乃'
 
    creates: [[file:examples/favico/N.png]] [[file:examples/favico/nom.png]]
+
+** gem-new
+   Create a new Gem project in sandbox using bundler.
+   : gem-new project-name
+
+   It does:
+   1) Create =./project-name= directory
+   2) Invoke =bundle gem project-name= with recommended options.
+   3) Invoke =bundle install --path vendor/bundle=
+   4) Add .gitignore from =github/gitignore=
 
 ** rails-new
    Create a new Rails project in sandbox using bundler.
