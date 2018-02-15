@@ -354,16 +354,16 @@ module OrgTodo
           bullet, title, state = $1, $2, $3
           out += [bullet.gsub("#", "*"), state, title].compact.map {|s| s.strip}.join(" ") + "\n"
 
-        when /^[+] (名前|author):\s*(.*)/i
+        when /^[+] (?:名前|author):\s*(.*)/i
           preamble[:author] = $1
 
-        when /^[+] (所属|organization):\s*(.*)/i
+        when /^[+] (?:所属|organization):\s*(.*)/i
           preamble[:author] = preamble[:author].to_s + " (#{$1})"
 
-        when /^[+] (日付|date):\s*(.*)/i
+        when /^[+] (?:日付|date):\s*(.*)/i
           preamble[:date] = $1
 
-        when /^[+] (資料等|published):\s*(.*)/i
+        when /^[+] (?:資料等|published):\s*(.*)/i
           out += ":PROPERTIES:\n:published: #{$1}\n:END:\n"
 
         else
