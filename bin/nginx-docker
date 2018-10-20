@@ -1,0 +1,62 @@
+#!/bin/sh
+
+nginx_cnf_dir="$HOME/Downloads/nginx"
+nginx_www_dir="$HOME/Downloads/www"
+
+nginx_cnf_file="$nginx_cnf_dir/nginx.conf"
+nginx_www_file="$nginx_www_dir/index.html"
+
+if [ ! -d "$nginx_cnf_dir" ]; then
+  mkdir -p "$nginx_cnf_dir"
+fi
+
+if [ ! -d "$nginx_www_dir" ]; then
+  mkdir -p "$nginx_www_dir"
+fi
+
+if [ ! -f "$nginx_cnf_file" ]; then
+  cat <<EOF  > "$nginx_cnf_file"
+include mime.types;
+types {
+    # here are additional types
+    application/wasm wasm;
+}
+server {
+    listen 8080 default_server;
+
+    root /var/www;
+    index index.html index.htm;
+}
+EOF
+fi
+
+if [ ! -f "$nginx_www_file" ]; then
+  cat <<EOF  > "$nginx_www_file"
+<html>
+  Hello !
+</html>
+EOF
+fi
+
+case "$1" in
+  start)
+    docker stop nginx
+    docker rm nginx
+    docker run -d -p 8080:8080 \
+      --name nginx \
+      -v "$nginx_cnf_dir":/etc/nginx/conf.d/ \
+      -v "$nginx_www_dir":/var/www \
+      nginx
+    sleep 2
+    open http://localhost:8080
+    ;;
+
+  stop)
+    docker stop nginx
+    docker rm nginx
+    ;;
+
+  *)
+    echo "$0 {start|stop}"
+    ;;
+esac

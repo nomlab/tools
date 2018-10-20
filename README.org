@@ -38,6 +38,8 @@
 
   + [[#gem-new][gem-new]] :: Create a new Gem project in sandbox using bundler.
 
+  + [[#nginx-docker][nginx-docker]] :: Pull Nginx official docker image and run instantly.
+
   + [[#rails-new][rails-new]] :: Create a new Rails project in sandbox using bundler.
 
   + [[#slack-sweeper][slack-sweeper]] :: Bulk remove all Slack files older than N days.
@@ -77,6 +79,23 @@
    2) Invoke =bundle gem project-name= with recommended options.
    3) Invoke =bundle install --path vendor/bundle=
    4) Add .gitignore from =github/gitignore=
+
+** nginx-docker
+   Pull Nginx official docker image and run instantly.
+   You can serve your own HTML files in =~/Downloads/www/=
+   : nginx-docker {start|stop}
+
+   It does:
+   1) Create minimum config file as =$HOME/Downloads/nginx/nginx.conf=
+   2) Create minimum index.html as =$HOME/Downloads/www/index.html=
+   3) pull official Nginx docker image and invoke:
+      #+BEGIN_SRC shell-script
+        docker run -d -p 8080:8080 --name nginx \
+        -v "$HOME/Downloads/nginx":/etc/nginx/conf.d/ \
+        -v "$HOME/Downloads/www":/var/www \
+        nginx
+      #+END_SRC
+   4) open http://localhost:8080
 
 ** rails-new
    Create a new Rails project in sandbox using bundler.
