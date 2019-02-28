@@ -110,7 +110,7 @@
 
 ** slack-sweeper
    Bulk remove all Slack files older than N(>30) days.
-   : Usage: slack-seeper [-n] SLACK_API_TOKEN DAYS
+   : Usage: slack-sweeper [-n] SLACK_API_TOKEN DAYS
    :  -n: dry run.
    For safety, this script does not remove more than 300 files.
 
