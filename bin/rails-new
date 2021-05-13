@@ -3,20 +3,40 @@
 APP_NAME="$1"
 IGN_MORE="https://raw.github.com/github/gitignore/master/Rails.gitignore"
 
+# Create APP_NAME directory
 mkdir "$APP_NAME" && cd "$APP_NAME" || exit 1
 
+# Create Gemfile template
 bundle init || exit 1
+
+# Add rails gem
 echo 'gem "rails"' >> Gemfile
 
-bundle install --path vendor/bundle && \
-  bundle exec rails new . -f --skip-bundle # --skip-test-unit
+# store gems in vendor/bundle
+bundle config set path 'vendor/bundle' || exit 1
+
+# Install Rails
+bundle install
+
+# rails new
+bundle exec rails new . -f --skip-bundle # --skip-test-unit
 
 echo "#"                      >> .gitignore
 echo "# Added from $IGN_MORE" >> .gitignore
 echo "#"                      >> .gitignore
 curl -L "$IGN_MORE"           >> .gitignore
 
-#echo "# RSpec"                                         >> Gemfile
-#echo "gem 'rspec-rails', group: [:development, :test]" >> Gemfile
+# Rspec
+# echo "# RSpec"                                         >> Gemfile
+# echo "gem 'rspec-rails', group: [:development, :test]" >> Gemfile
 
-bundle install --path vendor/bundle
+bundle install
+
+export NVM_DIR="$HOME/.nvm"
+if [ -s "$NVM_DIR/nvm.sh" ]; then
+  . "$NVM_DIR/nvm.sh"
+  nvm version > .nvmrc
+fi
+
+npm install -g yarn
+bundle exec rails webpacker:install
