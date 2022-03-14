@@ -396,6 +396,7 @@ __END__
 \documentclass[a4j,dvipdfmx,landscape]{jsarticle}
 \usepackage{longtable}
 \usepackage{hyperref}
+\usepackage{pxjahyper}
 \usepackage{multirow}
 
 \tolerance=1000
