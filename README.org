@@ -50,13 +50,14 @@
 
 ** ame
    Set Slack status or send message with CLI.
-   : ame [-c CONFIG_FILE] [-t TOKEN_NAME] -m message CHANNEL TEXT
+   : ame [-c CONFIG_FILE] [-t TOKEN_NAME] -m message CHANNEL TEXT [TITLE] [LINK]
    : ame [-c CONFIG_FILE] [-t TOKEN_NAME] -m status ICON TEXT
    :   -c Set config file (default: ~/.config/ame/config.sh).
    :   -t Select token name found in config.sh.
    :   -m Select method (message or status).
    : examples:
-   :   ame -m message general "Hi, there."
+   :   ame -m message general "Hi"
+   :   ame -m message general "Hi" "Title" "http://www.quickhack.net"
    :   ame -m status :office: "I am at office"
    See also about config example [[file:examples/ame/config.sh][examples/ame/config.sh]]
 

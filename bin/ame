@@ -4,13 +4,14 @@
 ## Usage
 
 usage() {
-  echo "ame [-c CONFIG_FILE] [-t TOKEN_NAME] -m message CHANNEL TEXT"
+  echo "ame [-c CONFIG_FILE] [-t TOKEN_NAME] -m message CHANNEL TEXT [TITLE] [LINK]"
   echo "ame [-c CONFIG_FILE] [-t TOKEN_NAME] -m status ICON TEXT"
   echo "  -c Set config file (default: ~/.config/ame/config.sh)."
   echo "  -t Select token name found in config.sh."
   echo "  -m Select method (message or status)."
   echo "examples:"
-  echo '  ame -m message general "Hi, there."'
+  echo '  ame -m message general "Hi"'
+  echo '  ame -m message general "Hi" "Title" "http://www.quickhack.net"'
   echo '  ame -m status :office: "I am at office"'
 } >&2
 
@@ -20,6 +21,8 @@ print_error() {
 
 ################################################################
 ## Update Slack Status
+##
+## https://api.slack.com/methods/users.profile.set
 
 update_slack_status () {
   local token="$1"
@@ -36,20 +39,63 @@ update_slack_status () {
 }
 
 ################################################################
-## Post text to Slack
+## Post Message to Slack
+##
+## https://api.slack.com/methods/chat.postMessage
 
-post_text_to_slack () {
+## Create JSON for posting message to Slack
+#
+# -R: Do not parse the input as JSON.
+# -r: Do not format output.
+# -s: Encode LF as a single long string.
+#
+# echo 'This is test "" and  {} are encoded' | jq -sRr '@json'
+# → "This is test \"\" and {} are encoded\n"
+#
+message_to_json () {
+  local channel="$1"
+  local text=$( printf "%s" "$2" | jq -sRr '@json')
+  local title=$(printf "%s" "$3" | jq -sRr '@json')
+  local link=$( printf "%s" "$4" | jq -sRr '@json')
+
+  if [ "$title" = '""' -a "$link" = '""' ]; then
+    cat << EOS
+    {"channel": "${channel}",
+     "as_user": true,
+     "text": ${text},
+    }
+EOS
+  else
+    cat << EOS
+    {"channel": "${channel}",
+     "as_user": true,
+     "attachments": [{
+       "color": "#7CD197",
+       "text": ${text},
+       "title": ${title},
+       "title_link": ${link},
+       "fallback": ${text},
+    }]}
+EOS
+  fi
+}
+
+post_message_to_slack () {
   local token="$1"
   local channel="$2"
   local text="$3"
+  # optional
+  local title="$4"
+  local link="$5"
 
-  local response=$(curl -s -S -X POST \
-       -d "token=$token" \
-       --data-urlencode "channel=$channel" \
-       --data-urlencode "text=$text" \
-       --data-urlencode "as_user=true" \
-       https://slack.com/api/chat.postMessage \
-       | sed -n 's/{"ok":false,"error":"\([^"]*\)".*/\1/p')
+  local json=$(message_to_json "$channel" "$text" "$title" "$link")
+
+  local response=$(
+    curl -s -S -X POST -H "Authorization: Bearer $token" \
+         -H 'Content-type: application/json' \
+         --data "$json" \
+         https://slack.com/api/chat.postMessage \
+      | sed -n 's/{"ok":false,"error":"\([^"]*\)".*/\1/p')
 
   echo "$response" | tr '_' ' '
 }
@@ -78,7 +124,7 @@ done
 shift $(( $OPTIND - 1 ))
 
 # unknown option check
-if [ "$OPT_ERROR" = 1 -o $# -ne 2 ]; then
+if [ "$OPT_ERROR" = 1 ]; then
   usage
   exit -1
 fi
@@ -128,10 +174,18 @@ fi
 
 case $OPT_METHOD in
   status)
+    if [ $# -ne 2 ]; then
+      usage
+      exit -1
+    fi
     error_message=$(update_slack_status "$TOKEN" "$1" "$2")
     ;;
   message)
-    error_message=$(post_text_to_slack "$TOKEN" "$1" "$2")
+    if [ $# -lt 2 -o $# -gt 4 ]; then
+      usage
+      exit -1
+    fi
+    error_message=$(post_message_to_slack "$TOKEN" "$1" "$2" "$3" "$4")
     ;;
   *)
     print_error "Unknown method: $OPT_METHOD."
