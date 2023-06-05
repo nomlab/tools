@@ -4,7 +4,8 @@ PRJ_NAME="$1"
 IGN_MORE="https://raw.github.com/github/gitignore/master/Ruby.gitignore"
 
 bundle gem "$PRJ_NAME" --no-coc -t && cd "$PRJ_NAME" || exit 1
-bundle install --path vendor/bundle
+bundle config set path 'vendor/bundle' || exit 1
+bundle install || exit 1
 
 echo "#"                      >> .gitignore
 echo "# Added from $IGN_MORE" >> .gitignore
