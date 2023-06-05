@@ -1,42 +1,160 @@
-#!/bin/sh
+#!/bin/bash
+
+set -eu
 
 APP_NAME="$1"
 IGN_MORE="https://raw.github.com/github/gitignore/master/Rails.gitignore"
 
-# Create APP_NAME directory
-mkdir "$APP_NAME" && cd "$APP_NAME" || exit 1
+################################################################
+# Rails 7 does not need npm, yarn. However, bootstrap needs.
 
-# Create Gemfile template
-bundle init || exit 1
-
-# Add rails gem
-echo 'gem "rails"' >> Gemfile
-
-# store gems in vendor/bundle
-bundle config set path 'vendor/bundle' || exit 1
-
-# Install Rails
-bundle install
-
-# rails new
-bundle exec rails new . -f --skip-bundle # --skip-test-unit
-
-echo "#"                      >> .gitignore
-echo "# Added from $IGN_MORE" >> .gitignore
-echo "#"                      >> .gitignore
-curl -L "$IGN_MORE"           >> .gitignore
-
-# Rspec
-# echo "# RSpec"                                         >> Gemfile
-# echo "gem 'rspec-rails', group: [:development, :test]" >> Gemfile
-
-bundle install
-
-export NVM_DIR="$HOME/.nvm"
-if [ -s "$NVM_DIR/nvm.sh" ]; then
-  . "$NVM_DIR/nvm.sh"
-  nvm version > .nvmrc
+if ! command -v npm  &> /dev/null; then
+  echo "npm command not found." 1>&2
+  exit 1
 fi
 
-npm install -g yarn
-bundle exec rails webpacker:install
+if ! command -v yarn &> /dev/null; then
+  echo "yarn command not found." 1>&2
+  echo "'npm install -g yarn' would help." 1>&2
+  exit 1
+fi
+
+################################################################
+# Create APP_NAME directory
+
+mkdir "$APP_NAME"
+cd "$APP_NAME"
+
+################################################################
+# 1) Create Gemfile template
+# 2) Add Rails gem
+# 3) Store gems in vendor/bundle
+# 4) Install Rails
+# 5) rails new
+# 6) Install additional gems
+
+bundle init
+echo 'gem "rails"' >> Gemfile
+bundle config set path 'vendor/bundle'
+bundle install
+bundle exec rails new . --force --css=bootstrap
+
+cat <<EOS >> Gemfile
+
+################################
+## Added by rails-new script
+
+gem "bootstrap_form"
+gem "kaminari"
+gem "ransack"
+EOS
+
+bundle install
+bin/rails generate kaminari:views bootstrap4
+bin/rails generate kaminari:config
+
+################################################################
+# Setup .gitignore file
+
+cat <<EOS >> .gitignore
+
+#
+# Added from $IGN_MORE
+#
+
+# Ignore local files
+/attic/
+
+EOS
+curl -L "$IGN_MORE" >> .gitignore
+
+################################################################
+## Commit all changes to git (1)
+
+git add .
+git commit --no-verify -F - <<EOS
+rails new $APP_NAME
+
+mkdir $APP_NAME
+cd $APP_NAME
+bundle init
+echo 'gem "rails"' >> Gemfile
+bundle config set path 'vendor/bundle'
+bundle install
+bundle exec rails new . --force --css=bootstrap
+echo 'gem "bootstrap_form"' >> Gemfile
+echo 'gem "kaminari"' >> Gemfile
+echo 'gem "ransack"' >> Gemfile
+bundle install
+bin/rails generate kaminari:views bootstrap4
+bin/rails generate kaminari:config
+curl -L "$IGN_MORE" >> .gitignore
+EOS
+
+################################################################
+## Set time zone
+
+sed --in-place 's/# config.time_zone = .*/config.time_zone = "Tokyo"/' config/application.rb
+sed --in-place '/^  end$/i\\n    config.i18n.default_locale = :ja'     config/application.rb
+
+################################################################
+## install I18N files
+
+locale_file='config/locales/ja.yml'
+locale_url='https://raw.githubusercontent.com/svenfuchs/rails-i18n/master/rails/locale/ja.yml'
+
+if [ ! -f "$locale_file" ]; then
+  echo "# $locale_url" > "$locale_file"
+  curl -L "$locale_url" >> "$locale_file"
+fi
+
+if [ ! -f config/locales/activerecord.ja.yml ]; then
+cat <<EOS > config/locales/activerecord.ja.yml
+ja:
+  activerecord:
+    models:
+      student: 学生
+    attributes:
+      student:
+        name: 氏名
+        number: 学生番号
+EOS
+fi
+
+curl -L https://raw.githubusercontent.com/tigrish/kaminari-i18n/master/config/locales/ja.yml > config/locales/kaminari.ja.yml
+
+################################################################
+## Add css
+
+cat <<EOS >> app/assets/stylesheets/application.bootstrap.scss
+
+label.required:after {
+  content:" *";
+  color: red;
+}
+EOS
+
+################################################################
+## Commit all changes to git (2)
+
+git add .
+git commit --no-verify -F - <<EOS
+Add setup for Japanese
+
+Set time_zone in config/application.rb to "Tokyo"
+curl -L $locale_url > $locale_file
+Create sample config/locales/activerecord.ja.yml
+curl -L https://raw.githubusercontent.com/tigrish/kaminari-i18n/master/config/locales/ja.yml > config/locales/kaminari.ja.yml
+Add CSS to app/assets/stylesheets/application.bootstrap.scss
+EOS
+
+cat <<EOS
+################################################################
+rails-new done!
+I made 2 commits as the result of 'rails new $APP_NAME'
+Please do amend if you want to adjust commits:
+ git config [--global] user.name 'Your Name'
+ git config [--global] user.email 'your-email@example.com'
+ git rebase --root --exec 'git commit --amend --no-edit --reset-author'
+################################################################
+EOS
