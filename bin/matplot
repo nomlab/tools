@@ -1,0 +1,74 @@
+#!/bin/bash
+
+set -e
+
+HOST_USER_ID=$(id -u)
+HOST_USER_NAME=$(id -un)
+
+IMG_NAME="matplot"
+IMG_TAG="latest"
+IMG_NAME_TAG="${IMG_NAME}:${IMG_TAG}"
+
+function dockerfile() {
+  cat <<EOF
+FROM ubuntu:22.04
+RUN apt-get update
+RUN apt-get install -y sudo vim python3 python3-pip
+RUN pip3 install pandas matplotlib scipy
+
+RUN useradd -m -s /bin/bash -u $HOST_USER_ID $HOST_USER_NAME
+RUN usermod -aG sudo $HOST_USER_NAME
+RUN sed -i 's/^%sudo.*$/%sudo ALL=(ALL:ALL) NOPASSWD: ALL/' /etc/sudoers
+
+RUN mkdir /home/$HOST_USER_NAME/work
+RUN touch /home/$HOST_USER_NAME/.sudo_as_admin_successful
+RUN chown -R ${HOST_USER_NAME}:${HOST_USER_NAME} /home/$HOST_USER_NAME
+
+USER $HOST_USER_NAME
+WORKDIR /home/$HOST_USER_NAME/work
+
+CMD ["bash"]
+EOF
+}
+
+function dockerfile_signature() {
+  dockerfile | md5sum | sed 's/ .*//'
+}
+
+function img_signature() {
+  local name_and_tag="$1"
+  docker inspect "$name_and_tag" \
+         --format='{{.Config.Labels.dockerfile_signature}}' 2>/dev/null
+}
+
+function img_is_uptodate() {
+  local name_and_tag="$1"
+  test $(dockerfile_signature) = $(img_signature "$name_and_tag")
+}
+
+# Build Docker image locally.
+# Usage: build_img "matplot:latest"
+#
+function build_img() {
+  local name_and_tag="$1"
+  dockerfile | \
+    docker build \
+           --label dockerfile_signature=$(dockerfile_signature) \
+           -t "$name_and_tag" -f - .
+}
+
+################################################################
+## main
+
+if ! img_is_uptodate "$IMG_NAME_TAG"; then
+  build_img "${IMG_NAME_TAG}"
+fi
+
+if [ $# -eq 0 ]; then
+  command="bash"
+else
+  command="python3"
+fi
+
+docker run -t -i --rm  -v .:/home/$HOST_USER_NAME/work \
+       --name "$IMG_NAME" "$IMG_NAME_TAG" "$command" "$@"
