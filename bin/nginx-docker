@@ -1,7 +1,15 @@
 #!/bin/sh
 
+if [ $(uname -s) = Linux ]; then
+  # Linux
+  OPEN_COMMAND=xdg-open
+else
+  # Darwin
+  OPEN_COMMAND=open
+fi
+
 nginx_cnf_dir="$HOME/Downloads/nginx"
-nginx_www_dir="$HOME/Downloads/www"
+nginx_www_dir="$HOME/Downloads/nginx/www"
 
 nginx_cnf_file="$nginx_cnf_dir/nginx.conf"
 nginx_www_file="$nginx_www_dir/index.html"
@@ -48,7 +56,7 @@ case "$1" in
       -v "$nginx_www_dir":/var/www \
       nginx
     sleep 2
-    open http://localhost:8080
+    $OPEN_COMMAND http://localhost:8080
     ;;
 
   stop)
@@ -57,6 +65,9 @@ case "$1" in
     ;;
 
   *)
-    echo "$0 {start|stop}"
+    echo "$(basename $0) {start|stop}"
+    echo "  Visit http://localhost:8080"
+    echo "  Edit $nginx_cnf_file"
+    echo "  Edit $nginx_www_file"
     ;;
 esac
