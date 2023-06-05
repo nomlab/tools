@@ -38,9 +38,11 @@
 
   + [[#gem-new][gem-new]] :: Create a new Gem project in sandbox using bundler.
 
+  + [[#matplot][matplot]] :: Invoke python3 with matplotlib using Docker
+
   + [[#nginx-docker][nginx-docker]] :: Pull Nginx official docker image and run instantly.
 
-  + [[#rails-new][rails-new]] :: Create a new Rails project in sandbox using bundler.
+  + [[#rails-new][rails-new]] :: Create a new Rails project with some useful gems.
 
   + [[#slack-sweeper][slack-sweeper]] :: Bulk remove all Slack files older than N days.
 
@@ -71,6 +73,9 @@
 
    creates: [[file:examples/favico/N.png]] [[file:examples/favico/nom.png]]
 
+   To list-up available fonts, try:
+   : convert -list font | grep Font:
+
 ** gem-new
    Create a new Gem project in sandbox using bundler.
    : gem-new project-name
@@ -78,8 +83,10 @@
    It does:
    1) Create =./project-name= directory
    2) Invoke =bundle gem project-name= with recommended options.
-   3) Invoke =bundle install --path vendor/bundle=
+   3) Invoke =bundle config set path vendor/bundle=
    4) Add .gitignore from =github/gitignore=
+** matplot
+   Invoke python3 with matplotlib using Docker
 
 ** nginx-docker
    Pull Nginx official docker image and run instantly.
@@ -100,14 +107,25 @@
 
 ** rails-new
    Create a new Rails project in sandbox using bundler.
+   It requires npm and yarn.
+   Rails 7 does not need npm, yarn. However, bootstrap needs.
    : rails-new project-name
 
    It does:
    1) Create =./project-name= directory
    2) Create temporal Gemfile for bootstrap
    3) Install Rails with bundler
-   4) Invoke =bundle exec rails new= overriding initial Gemfile.
+   4) Invoke =bundle exec rails new= overriding initial Gemfile with some additionals:
+      + bootstrap
+      + bootstrap_form
+      + kaminari
+      + ransack
    5) Add .gitignore from =github/gitignore=
+   6) Set timezone to Tokyo (JST)
+   7) Install ja locale files
+      + Set default locale to ja
+      + Install config/locales/ja.ym
+      + Install config/locales/activerecord.ja.yml
 
 ** slack-sweeper
    Bulk remove all Slack files older than N(>30) days.
