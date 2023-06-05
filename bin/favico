@@ -10,6 +10,7 @@ usage() {
   printf "Usage: $(basename $0) [-s size] [-c color] [-b bgcolor] [-f font] -o FILENAME STRING\n"
   printf "Example: favico -s 64 -c white -b blue -o N.png 'N'\n"
   printf "         favico -s 64 -f '/Library/Fonts/ヒラギノ丸ゴ ProN W4.ttc' -o nom.png '乃'\n"
+  printf " To list-up available fonts, try: convert -list font | grep Font:\n"
 } >&2
 
 ## parse option
