@@ -1,0 +1,23 @@
+#!/bin/bash
+
+NOMPEDIA_URL="https://scrapbox.io/nompedia/"
+
+function usage() {
+cat << EOS
+list-nompedia
+
+Description:
+    Display titles and URL of all nompedia pages
+Usage:
+    list-nompedia [json_file]
+Help:
+    [json_file] can be downloaded from Scrapbox settings page
+EOS
+}
+
+if [ "$1" = "" ]; then
+    usage
+    exit 1
+fi
+
+cat $1 | jq -r '.pages[].title' | sed 's/ /_/g' |  awk -v url="$NOMPEDIA_URL" '{print NR, $0, url$0}'
