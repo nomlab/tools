@@ -46,7 +46,7 @@ function img_signature() {
 
 function img_is_uptodate() {
   local name_and_tag="$1"
-  test $(dockerfile_signature) = $(img_signature "$name_and_tag")
+  test "$(dockerfile_signature)" = "$(img_signature "$name_and_tag")"
 }
 
 # Build Docker image locally.
