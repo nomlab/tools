@@ -42,6 +42,8 @@
 
   + [[#nginx-docker][nginx-docker]] :: Pull Nginx official docker image and run instantly.
 
+  + [[#prodargs][prodargs]] :: Execute a command multiple times changing the convination of option args.
+
   + [[#rails-new][rails-new]] :: Create a new Rails project with some useful gems.
 
   + [[#slack-sweeper][slack-sweeper]] :: Bulk remove all Slack files older than N days.
@@ -104,6 +106,25 @@
         nginx
       #+END_SRC
    4) open http://localhost:8080
+
+** prodargs
+   Execute a command multiple times changing the convination of option args.
+   For example, if you want to perform some benchmark changing its parameters,
+   You need to type boring commands:
+   : some_benchmark -t 1 -r 1 -s 1
+   : some_benchmark -t 1 -r 1 -s 10
+   : some_benchmark -t 1 -r 2 -s 1
+   : some_benchmark -t 1 -r 2 -s 10
+   : some_benchmark -t 2 -r 1 -s 1
+   : some_benchmark -t 2 -r 1 -s 10
+   : some_benchmark -t 2 -r 2 -s 1
+   : some_benchmark -t 2 -r 2 -s 10
+
+   By using prodarg, it becomes:
+   : prodargs -- some_benchmark -t 1-2 -r 1-2 -s 1,10
+
+   With -n option, it perform dry-run; shows what happens.
+   : prodargs -n -- some_benchmark -t 1-2 -r 1-2 -s 1,10
 
 ** rails-new
    Create a new Rails project in sandbox using bundler.
