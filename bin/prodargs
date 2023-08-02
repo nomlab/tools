@@ -1,5 +1,59 @@
 #!/bin/bash
 
+# Get optarg by name
+#
+# Usage:
+#   get_optarg "r" comm -a -t 1 -r 1 -s 1
+#
+# Result:
+#   1
+#
+function get_optarg() {
+  local optname="$1"
+  shift
+
+  while [ $# -gt 0 ]
+  do
+    case "$1" in
+      -$optname)
+        echo "$2"
+        return
+        ;;
+    esac
+    shift
+  done
+}
+
+# Replace embedded %X style keys by optargs
+#
+# Usage:
+#   replace_optargs comm -a -l logfile-t%t-r%r-s%s.log -t 1 -r 2 -s 3
+#
+# Result:
+#   comm -a -l logfile-t1-r2-s3.log -t 1 -r 2 -s 3
+#
+function replace_optargs() {
+  local before="$@"
+  local after=
+
+  while [ $# -gt 0 ]
+  do
+    # find %X style keys in "$1": "a-%b-%c-d" → "b\nc\n"
+    local optnames=$(echo "$1" | sed 's/[^%]*%\(.\)/\1\n/g' | sed '$d')
+
+    # replace %Xs in current_arg
+    local current_arg="$1"
+    for name in $optnames
+    do
+      optarg=$(get_optarg "$name" $before)
+      current_arg=$(echo "$current_arg" | sed "s!%$name!$optarg!g")
+    done
+    after="$after $current_arg"
+    shift
+  done
+  echo "$after"
+}
+
 # Expand complex sequence of numbers
 #
 # Usage:
@@ -171,6 +225,7 @@ function cartesian_product() {
 
 ################
 # Parse OPTIONS
+
 while getopts "nh" flag
 do
   case $flag in
@@ -184,8 +239,20 @@ done
 shift $(( $OPTIND - 1 ))
 OPTIND=
 
+################
+# change command if DRY-RUN
+
 if [ "$OPT_DRYRUN" = 1 ];then
-  product_optargs "$@"
+  command="cat"
 else
-  product_optargs "$@" | sh
+  command="sh -v"
 fi
+
+################
+# Do it
+
+args=$(product_optargs "$@")
+
+while read -r line; do
+  replace_optargs $line
+done <<<"$args" | $command

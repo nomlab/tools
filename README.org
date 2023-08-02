@@ -126,6 +126,19 @@
    With -n option, it perform dry-run; shows what happens.
    : prodargs -n -- some_benchmark -t 1-2 -r 1-2 -s 1,10
 
+   You can embed optargs in other args:
+   : prodargs -- some_benchmark -l log-t%t-r%r-s%s.log -t 1-2 -r 1-2 -s 1,5
+
+   Does:
+   : some_benchmark -l log-t1-r1-s1.log -t 1 -r 1 -s 1
+   : some_benchmark -l log-t1-r1-s5.log -t 1 -r 1 -s 5
+   : some_benchmark -l log-t1-r2-s1.log -t 1 -r 2 -s 1
+   : some_benchmark -l log-t1-r2-s5.log -t 1 -r 2 -s 5
+   : some_benchmark -l log-t2-r1-s1.log -t 2 -r 1 -s 1
+   : some_benchmark -l log-t2-r1-s5.log -t 2 -r 1 -s 5
+   : some_benchmark -l log-t2-r2-s1.log -t 2 -r 2 -s 1
+   : some_benchmark -l log-t2-r2-s5.log -t 2 -r 2 -s 5
+
 ** rails-new
    Create a new Rails project in sandbox using bundler.
    It requires npm and yarn.
