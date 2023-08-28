@@ -50,6 +50,8 @@
 
   + [[#treetable][treetable]] :: Convert markdown or org-mode style section tree into table.
                  It is supposed to be used for conversion of issue list into table.
+
+  + [[#list-nomladia][list-nompedia]] :: List titles and URLs of all nompedia pages
 * Descriptions
 
 ** ame
@@ -171,3 +173,7 @@
    : Usage: treetable sample-todo-list.{md|org} > sample-todo-list.tex
    For details about input-file format, check [[file:examples/treetable/todo-list.org][examples/treetable/todo-list.org]] or  [[file:examples/treetable/todo-list.md][examples/treetable/todo-list.md]].
    See also about output example [[file:examples/treetable/todo-list.pdf][examples/treetable/todo-list.pdf]]
+
+** list-nompedia
+   : Usage: list-nompedia nompedia.json
+   nompedia.json can be downloaded from [[https://scrapbox.io/projects/nompedia/settings/page-data][nompedia settings page]]
